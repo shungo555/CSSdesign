@@ -6,26 +6,6 @@ import csv
 DATA_ROOT = 'D:/workspace/大学/奥富田中研究室/program/dataset/'
 CAMERA_DATA_ROOT = DATA_ROOT + 'camera_data/'
 
-def get_illuminant(wavelength_range=[400, 700]):
-    """Load illuminant (D65)
-        
-    Parameters
-    ----------
-    wavelength_range : list, optional
-        wave range, by default [400, 700]
-    
-    Returns
-    -------
-    numpy.array(31, 31)
-        illuminant data (diagonal matrix)
-    """   
-    print('Load illuminant (D65)')  
-    data_range = [int((wavelength_range[0] - 400) / 10), 1 + int((wavelength_range[1] - 400) / 10)] 
-    L = np.load(CAMERA_DATA_ROOT + 'D65.npy')[data_range[0]:data_range[1], 0]
-    L = L / np.amax(L)
-    L = L.flatten()
-    return np.diag(L)
-
 
 def get_xyz(wavelength_range=[400, 700]):
     """Load xyz function
