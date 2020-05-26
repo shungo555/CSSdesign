@@ -10,7 +10,7 @@ DATA_ROOT = '../../'
 
 
 def smoothness(weight):
-    """[summary]
+    """calculate smoothness term 
 
     Arguments:
         weight numpy.array(31, 3) -- [description]
