@@ -77,7 +77,7 @@ class MyEncoder():
         get_crgb: return cRGB             
     """
     
-    def __init__(self, initial_sensitivity, Ls, smoothness = 1E-6, input_shape = (128, 128, 31), trainable=False):
+    def __init__(self, initial_sensitivity, Ls, smoothness = 1E-6, input_shape = (128, 128, 31), trainable=False, wide_color='g'):
         """intialize
         
         Parameters
@@ -97,6 +97,7 @@ class MyEncoder():
         self.rgb_bandwidth = 3
         self.Ls = Ls
         self.trainable = trainable
+        self.wide_color = wide_color
     
 
     def my_encoder(self):
@@ -117,7 +118,7 @@ class MyEncoder():
                       kernel_constraint = ConstraintMax(), use_bias = False, weights = [self.initial_sensitivity], name = 'CSS', trainable = self.trainable )(reflect)
         
         # CFA pattern
-        cfa = cfa_bayer([self.input_shape[0], self.input_shape[1]])
+        cfa = cfa_bayer([self.input_shape[0], self.input_shape[1]], wide_color=self.wide_color)
         mask = K.constant(cfa)
         
         # mosaic image

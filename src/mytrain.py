@@ -184,8 +184,9 @@ def main(args):
     print('Ground Truth is ' + args.gt)
     if (args.gt == 'srgb'):
         ground_truth = srgb
-        with open('D:/workspace/大学/奥富田中研究室/program/dataset/cave_hsi/val_data/srgb/CSS_change/val_data_noise0.pickle', mode='rb') as fi:
-            val_data = pickle.load(fi)
+        if not args.validation:
+            with open('../../dataset/cave_hsi/val_data/srgb/CSS_change/val_data_noise' + str(args.noise) + '.pickle', mode='rb') as fi:
+                val_data = pickle.load(fi)
 
 
     # Data details
@@ -196,15 +197,17 @@ def main(args):
     ps = 128
     patch_size = [ps + 2 * YBorder, ps + 2 * YBorder]
     nl_range = [0, nl_max]
+    wide_color = 'b'
     
     # Train parameters
     test_data_num = 8
     traindata_num = data_num - test_data_num
-    # smoothness = 1E-6
-    smoothness = 0
+    smoothness = 1E-7
+    # smoothness = 0
     skip_mixed = True
     Mcc = None
     epochs = args.epochs
+    # trainable_flag=False
 
     # # Save config
     # output_config(test_data_num, smoothness, nl_max255, batch_size, ps)
@@ -213,7 +216,7 @@ def main(args):
         # Make validation data
         print('make validation data')
         gen_class = Gen(hsi[-test_data_num:, :, :, :], ground_truth[-test_data_num:, :, :, :], batch_size, patch_size, Ls[0][0], sens, nl_range = nl_range, YBorder = YBorder)   
-        gen_class.seeds(0, 1)
+        gen_class.seeds(2, 2)
         gen = gen_class.generator()
         val_data = gen.__next__()
 
@@ -227,7 +230,7 @@ def main(args):
 
         # Define model
         encoder= build_my_model.MyEncoder(initial_sensitivity=sensitivity, Ls=Ls, smoothness=smoothness, input_shape=(
-            patch_size[0], patch_size[1], hsi_bandwidth), trainable=True).my_encoder()
+            patch_size[0], patch_size[1], hsi_bandwidth), trainable=args.trainable, wide_color=wide_color).my_encoder()
         decoder = build_model.WiG_sub(input_shape=(
             patch_size[0], patch_size[1], 1), nb_features=128, Mcc=Mcc, skip_mixed=skip_mixed)
 
@@ -273,7 +276,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument('--gpu', dest='gpu', action='store_true',
                         help='use the GPU for processing. (default: True)')
-    parser.add_argument('--epochs', type=int, default=100,
+    parser.add_argument('--trainable', dest='trainable', action='store_true',
+                        help='if trainable is true, trainable CSS. (default: False)')    parser.add_argument('--epochs', type=int, default=100,
                         help='number of training epochs. (default: 100)')
     parser.add_argument('--noise', type=int, default=0,
                         help='define test noise level (8bit). (default: 0)')
@@ -291,6 +295,7 @@ if __name__ == "__main__":
                         help = 'if you make validation data, set True (default: False)')
     parser.set_defaults(gpu = True)
     parser.set_defaults(weight = None)
+    parser.set_defaults(trainable = False)
     parser.set_defaults(validation = False)
     args = parser.parse_args()
     main(args)

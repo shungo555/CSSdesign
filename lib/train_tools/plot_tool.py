@@ -7,6 +7,26 @@ import argparse
 
 
 DATA_ROOT = '../../'
+
+
+def smoothness(weight):
+    """[summary]
+
+    Arguments:
+        weight numpy.array(31, 3) -- [description]
+    """
+    C = np.zeros((weight.shape[0], weight.shape[0]))
+    for i in range(weight.shape[0]):
+        if not (i == 0 or i == weight.shape[0] - 1):
+            C[i, i] = -2
+            C[i, i - 1] = 1    
+            C[i, i + 1] = 1
+
+    Cw = np.dot(C, weight)
+    sm = np.dot(Cw[:,0], Cw[:,0]) + np.dot(Cw[:,1], Cw[:,1]) + np.dot(Cw[:,2], Cw[:,2])  
+    return sm
+
+
 def plot_cpsnr_log(cpsnr_log, val_cpsnr_log, title):
     """plot cpsnr log
     
