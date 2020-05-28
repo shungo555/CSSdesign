@@ -32,7 +32,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from lib.image_tools.cfa import cfa_bayer
 from lib.image_tools.evaluation import np_cpsnr, np_rmse255, mean_cpsnr, mean_rmse255
 from lib.image_tools.draw_image import imwrite, imwrite_gray
-from lib.load_dataset.load_environment_data import get_illuminant
+from lib.load_dataset.load_illuminant_data import get_illuminant
 from lib.load_dataset.load_camera_data import get_camera_sensitivity
 from lib.train_tools.plot_tool import plot_all_log, plot_sensitivity
 
@@ -172,8 +172,9 @@ def main(args):
     plot_sensitivity(sens, wavelength_range, args.output + 'sensitivity.png')
 
     # Load illuminants
+    iiluminant_name = 'D65'
     Ls = np.zeros((1, 1, hsi_bandwidth, hsi_bandwidth))
-    Ls[0][0] = get_illuminant(wavelength_range)
+    Ls[0][0] = get_illuminant(iiluminant_name=iiluminant_name, wavelength_range=wavelength_range)
 
     # Normalize each image
     g_ts = get_srgb_gain()
@@ -197,7 +198,7 @@ def main(args):
     ps = 128
     patch_size = [ps + 2 * YBorder, ps + 2 * YBorder]
     nl_range = [0, nl_max]
-    wide_color = 'b'
+    wide_color = 'g'
     
     # Train parameters
     test_data_num = 8
@@ -267,8 +268,6 @@ def main(args):
         train(model, gen_class, val_gen_class, epochs)
 
         plot_all_log(args.output + 'data.csv', args.output)
-
-
 
 
 if __name__ == "__main__":

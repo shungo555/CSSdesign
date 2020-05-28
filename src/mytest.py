@@ -29,7 +29,7 @@ from lib.image_tools.cfa import cfa_bayer
 from lib.image_tools.evaluation import np_cpsnr, np_rmse255, mean_cpsnr, mean_rmse255
 from lib.image_tools.draw_image import imwrite, imwrite_gray
 from lib.image_tools.image_process import create_raw, calculate_gain, gamma_correction, create_3bands_raw
-from lib.load_dataset.load_environment_data import get_illuminant
+from lib.load_dataset.load_illuminant_data import get_illuminant
 from lib.load_dataset.load_camera_data import get_camera_sensitivity
 from lib.train_tools.plot_tool import plot_sensitivity
 
@@ -81,6 +81,7 @@ def test(model, hsi, ground_truth, noise, gains, output_dir):
 
     # save
     np.save(output_dir + '/Ypred.npy', Ypred)
+    np.save(output_dir + '/gains.npy', gains)
 
     if args.gt == 'srgb':
         for i in range(data_num):
@@ -129,13 +130,14 @@ def main(args):
     crgb = get_crgb()
 
     # Load initial camera sensitivity
-    sens = get_camera_sensitivity(camera_name, wavelength_range)
+    sens = get_camera_sensitivity(camera_name, wavelength_range=wavelength_range)
     rgb_bandwidth = sens.shape[1]
     sensitivity = np.zeros((1, 1, hsi_bandwidth, rgb_bandwidth))
     sensitivity[0][0] = sens
 
     # Load illuminants
-    L = get_illuminant(wavelength_range)
+    illuminant_name = 'D65'
+    L = get_illuminant(illuminant_name=illuminant_name, wavelength_range=wavelength_range)
     Ls = np.zeros((1, 1, hsi_bandwidth, hsi_bandwidth))
     Ls[0][0] = L
 

@@ -11,10 +11,11 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
-sys.path.append('../')
-sys.path.append('../../')
-from lib.load_dataset.load_canon20D_data import get_canon20D_sensitivity, get_chart, get_chart_hsi, get_H, get_illuminant
-from lib.load_dataset.load_cave_data import get_chart_crgb_gain, get_chart_srgb_gain
+sys.path.append('..\\')
+sys.path.append('..\\..\\')
+from lib.load_dataset.load_camera_data import get_camera_sensitivity
+from lib.load_dataset.load_illuminant_data import get_illuminant
+from lib.load_dataset.load_environment_data import get_chart, get_chart_hsi, get_H
 from lib.image_tools.image_process import gamma_correction
 from lib.image_tools.draw_image import imwrite
 
@@ -102,11 +103,11 @@ def color_correct(crgb, C, H, Ls):
 def main(args):
     # Load dataset
     if args.dataset == 'cave':
-        from lib.load_dataset.load_cave_data import get_crgb_gain, get_srgb_gain, get_crgb_gain_s, get_srgb_gain_s
+        from lib.load_dataset.load_cave_data import get_crgb_gain, get_srgb_gain, get_crgb_gain_s, get_srgb_gain_s, get_chart_crgb_gain, get_chart_srgb_gain
         # wavelengt range
         wavelength_range = [400, 700]
     elif args.dataset == 'tokyotech':
-        from lib.load_dataset.load_tokyotech_data import get_crgb_gain, get_srgb_gain, get_crgb_gain_s, get_srgb_gain_s
+        from lib.load_dataset.load_tokyotech_data import get_crgb_gain, get_srgb_gain, get_crgb_gain_s, get_srgb_gain_s, get_chart_crgb_gain, get_chart_srgb_gain
         # wavelengt range
         wavelength_range = [420, 720]
     else:
@@ -114,30 +115,31 @@ def main(args):
         sys.exit(1)
 
     # Load Camera sensitivity
-    C = get_canon20D_sensitivity(wavelength_range=wavelength_range).T
-    crgb_gain_s = get_crgb_gain_s()
-    C *= crgb_gain_s
-
+    camera_name = 'Canon20D'
+    C = get_camera_sensitivity(camera_name=camera_name, wavelength_range=wavelength_range).T
     H = get_H(wavelength_range=wavelength_range)
-    srgb_gain_s = get_srgb_gain_s()
-    H *= srgb_gain_s
     
     # Load cRGB
-    crgb = np.load(args.crgb)
+    crgb = np.load(args.crgb) * 0.95
+    # crgb_gain = get_crgb_gain()    
+    # srgb_gain = get_srgb_gain()   
+    crgb_gain = np.load(args.gain) 
 
-    crgb_gain = get_crgb_gain()    
-    srgb_gain = get_srgb_gain()    
-
-    Ls = get_illuminant(wavelength_range=wavelength_range)
+    illuminant_name = 'D65'
+    Ls = get_illuminant(illuminant_name=illuminant_name, wavelength_range=wavelength_range)
 
     # normalize cRGB
-    for i in range(crgb.shape[0]):
-        crgb[i,:,:,:] /= crgb_gain[i] 
+    # for i in range(crgb.shape[0]):
+    #     crgb[i,:,:,:] /= crgb_gain[i] 
+    #     # crgb[i,:,:,:] *= srgb_gain[i] 
 
     # color correction
     srgb_ref = color_correct(crgb, C, H, Ls)
+    # print(srgb_gain)
     for i in range(srgb_ref.shape[0]):
-        srgb_ref[i,:,:,:]*=srgb_gain[i]
+        print(np.amax(srgb_ref[i,:,:,:]))
+        print(crgb_gain[i])
+        srgb_ref[i,:,:,:]*=crgb_gain[i]
 
     np.save(args.output, srgb_ref)
 
@@ -145,6 +147,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument('--crgb', dest = 'crgb', default = 'results/', help = 'make input directory')
+    parser.add_argument('--gain', dest = 'gain', default = 'results/', help = 'make input directory')
     parser.add_argument('--output', dest = 'output', default = 'results/', help = 'make output directory')
     parser.add_argument('--dataset', dest='dataset', default='cave', help='set dataset cave or tokyotech (default: cave)')
     args = parser.parse_args()

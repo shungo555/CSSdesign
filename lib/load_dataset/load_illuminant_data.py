@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 DATA_ROOT = 'D:/workspace/大学/奥富田中研究室/program/dataset/'
 ILLUMINANT_DATA_ROOT = DATA_ROOT + '/illuminant_data/'
 
+
 def get_illuminant(illuminant_name="D65", wavelength_range=[400, 700]):
     """Load illuminant
         

@@ -73,7 +73,7 @@ def get_chart():
     return R
     
 
-def get_H(max_gain=0.95, wavelength_range=[400, 700]):
+def get_H(max_gain=1, wavelength_range=[400, 700]):
     """Load sRGB sensitivity H
     
     Returns
@@ -85,6 +85,7 @@ def get_H(max_gain=0.95, wavelength_range=[400, 700]):
     xyz = get_xyz(wavelength_range)
     invM = get_invM()
     H = np.dot(invM, xyz)
+    H = H * max_gain/np.amax(H)
     return H
 
 
