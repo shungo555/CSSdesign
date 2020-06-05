@@ -1,5 +1,0 @@
-# CSSdesign
-
-```
-mytrain.py
-```
