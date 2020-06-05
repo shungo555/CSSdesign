@@ -51,15 +51,13 @@ from lib.train_tools.plot_tool import plot_all_log, plot_sensitivity
 #     f.close
 
 
-def train(model, gen_class, val_gen_class, epochs, steps_per_epoch = 100):
+def train(model, gen_class, val_data, epochs, steps_per_epoch = 100):
     # Initialize parameters
     max_val_mean_cpsnr = 0
     weight_array = np.zeros((int(epochs), model.get_weights()[1][0][0].shape[0],model.get_weights()[1][0][0].shape[1]))
+  
     # Generator
     gen = gen_class.generator()
-
-    val_gen = val_gen_class.generator()
-    val_data = val_gen.__next__()
 
     # Read test data
     Xtest = val_data[0]
@@ -135,11 +133,6 @@ def main(args):
 
     # initial camera sensitivity
     camera_name = args.camera
-    # camera_name = "Canon20D"
-    # camera_name = "Canon300D"
-    # camera_name = "NikonD40"
-    # camera_name = "OlympusE-PL2"
-
 
     print('Load dataset : ' + args.dataset)
     if args.dataset == 'cave':
@@ -168,9 +161,6 @@ def main(args):
     sensitivity = np.zeros((1, 1, hsi_bandwidth, rgb_bandwidth))
     sensitivity[0][0] = sens
 
-    # plot sensitivity
-    plot_sensitivity(sens, wavelength_range, args.output + 'sensitivity.png')
-
     # Load illuminants
     iiluminant_name = 'D65'
     Ls = np.zeros((1, 1, hsi_bandwidth, hsi_bandwidth))
@@ -186,9 +176,8 @@ def main(args):
     if (args.gt == 'srgb'):
         ground_truth = srgb
         if not args.validation:
-            with open('../../dataset/cave_hsi/val_data/srgb/CSS_change/val_data_noise' + str(args.noise) + '.pickle', mode='rb') as fi:
+            with open(args.valfile, mode='rb') as fi:
                 val_data = pickle.load(fi)
-
 
     # Data details
     YBorder = 1
@@ -208,11 +197,7 @@ def main(args):
     skip_mixed = True
     Mcc = None
     epochs = args.epochs
-    # trainable_flag=False
-
-    # # Save config
-    # output_config(test_data_num, smoothness, nl_max255, batch_size, ps)
-
+ 
     if args.validation:
         # Make validation data
         print('make validation data')
@@ -221,7 +206,7 @@ def main(args):
         gen = gen_class.generator()
         val_data = gen.__next__()
 
-        with open(args.output +  '/val_data_noise' + str(args.noise) + '.pickle', mode='wb') as fo:
+        with open(args.valfile, mode='wb') as fo:
             pickle.dump(val_data, fo) 
     else:
         # Train data
@@ -246,26 +231,25 @@ def main(args):
         opt = Adam(clipvalue=0.5)
         model.compile(loss='mean_squared_error', optimizer=opt, metrics=[mean_rmse255, mean_cpsnr])
 
-        # Output model structure
-        model.summary()
-        # plot_model(model, to_file = args.output + 'model.png')
-
         # Load model weight (if exists)
         if (args.weight != None):
             print('Load' + args.weight)
             model.load_weights(args.weight)
 
+        # Output model structure
+        model.summary()
+        # plot_model(model, to_file = args.output + 'model.png')
+        
         # Define output folder
         if not os.path.isdir(args.output):
             os.mkdir(args.output)
         os.chdir(args.output)
 
-
-        val_gen_class = Gen(hsi[-test_data_num:, :, :, :], ground_truth[-test_data_num:, :, :, :], batch_size, patch_size, Ls[0][0], sens, nl_range = nl_range, YBorder = YBorder)   
-        val_gen_class.seeds(0, 1)
+        # plot initial sensitivity
+        plot_sensitivity(sens, wavelength_range, 'initial_sensitivity.png')
 
         # Train
-        train(model, gen_class, val_gen_class, epochs)
+        train(model, gen_class, val_data, epochs)
 
         plot_all_log(args.output + 'data.csv', args.output)
 
@@ -276,12 +260,13 @@ if __name__ == "__main__":
     parser.add_argument('--gpu', dest='gpu', action='store_true',
                         help='use the GPU for processing. (default: True)')
     parser.add_argument('--trainable', dest='trainable', action='store_true',
-                        help='if trainable is true, trainable CSS. (default: False)')    parser.add_argument('--epochs', type=int, default=100,
+                        help='if trainable is true, trainable CSS. (default: False)')
+    parser.add_argument('--epochs', type=int, default=100,
                         help='number of training epochs. (default: 100)')
     parser.add_argument('--noise', type=int, default=0,
                         help='define test noise level (8bit). (default: 0)')
     parser.add_argument('--output', dest='output',
-                        default='results/', help='output directory (necessary)')
+                        default='results/', help='output directory (default: results/)')
     parser.add_argument('--weight', dest='weight',
                         help='load existing weight file (default: None)')
     parser.add_argument('--gt', dest='gt', default='srgb',
@@ -292,9 +277,12 @@ if __name__ == "__main__":
                         help = 'if you use other cameras, set camera name (default: Canon20D)')
     parser.add_argument('--validation', dest = 'validation', action = 'store_true', 
                         help = 'if you make validation data, set True (default: False)')
+    parser.add_argument('--valfile', dest='valfile', default='val_data.pickle',
+                        help='set validation file name(default: val/)')
     parser.set_defaults(gpu = True)
     parser.set_defaults(weight = None)
     parser.set_defaults(trainable = False)
     parser.set_defaults(validation = False)
     args = parser.parse_args()
+    print(args.trainable)
     main(args)

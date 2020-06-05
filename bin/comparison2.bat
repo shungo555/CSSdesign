@@ -1,8 +1,8 @@
 set DATA_ROOT=../
 set dataset=cave
 
-set train_noise=10
-set test_noise=25
+set train_noise=0
+set test_noise=0
 
 set true_crgb_file_name=../../dataset/%dataset%_hsi/%dataset%_crgb.npy
 set true_srgb_file_name=../../dataset/%dataset%_hsi/%dataset%_srgb.npy

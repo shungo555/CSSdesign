@@ -33,6 +33,7 @@ from lib.load_dataset.load_illuminant_data import get_illuminant
 from lib.load_dataset.load_camera_data import get_camera_sensitivity
 from lib.train_tools.plot_tool import plot_sensitivity
 
+
 def test(model, hsi, ground_truth, noise, gains, output_dir):
     """test model
     
@@ -157,8 +158,8 @@ def main(args):
     for i in range(data_num):
         hsi[i, :, :, :] *= g_ts[i]
     
-    # Define cfa
-    cfa = cfa_bayer([hsi.shape[1], hsi.shape[2]])
+    # Define cfa, 
+    wide_color='b'
 
     # Test parameters
     noise_level = args.noise / 255.0
@@ -168,7 +169,7 @@ def main(args):
 
     # Define model
     encoder= build_my_model.MyEncoder(initial_sensitivity=sensitivity, Ls=Ls, smoothness=smoothness, input_shape=(
-        hsi.shape[1], hsi.shape[2], hsi_bandwidth), trainable=False).my_encoder()
+        hsi.shape[1], hsi.shape[2], hsi_bandwidth), trainable=False, wide_color=wide_color).my_encoder()
     decoder = build_model.WiG_sub(input_shape=(
         hsi.shape[1], hsi.shape[2], 1), nb_features=128, Mcc=Mcc, skip_mixed=skip_mixed)
 
