@@ -24,9 +24,6 @@ from mydata import Gen
 from keras import backend as K
 K.set_image_data_format('channels_last')
 
-# import data
-# from mydata import gen1
-
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from lib.image_tools.cfa import cfa_bayer
@@ -35,31 +32,20 @@ from lib.image_tools.draw_image import imwrite, imwrite_gray
 from lib.load_dataset.load_illuminant_data import get_illuminant
 from lib.load_dataset.load_camera_data import get_camera_sensitivity
 from lib.train_tools.plot_tool import plot_all_log, plot_sensitivity
-
-# def output_config(test_data_num, smoothness, nl_max255, batch_size, patch_size):
-#     strings = [
-#         '###config###',
-#         'test data number: ' + str(test_data_num),
-#         'smoothness: ' + str(smoothness),
-#         'max noise level (255): ' + str(nl_max255),
-#         'training batch size: ' + str(batch_size),
-#         'training patch size: ' + str(patch_size),
-#     ]
-#     with open(TRAIN_RESULT_PATH + 'config.txt', mode='w', encoding="utf-8") as f:
-#         f.write("\n".join(strings))
-#         f.write("\n")
-#     f.close
+from lib.train_tools.save_config import output_config
 
 
-def train(model, gen_class, val_data, epochs, steps_per_epoch = 100):
+def train(model, gen_class, val_gen_class, epochs, steps_per_epoch = 100):
     # Initialize parameters
     max_val_mean_cpsnr = 0
     weight_array = np.zeros((int(epochs), model.get_weights()[1][0][0].shape[0],model.get_weights()[1][0][0].shape[1]))
-  
+    
     # Generator
     gen = gen_class.generator()
-
+    val_gen = val_gen_class.generator()
+    
     # Read test data
+    val_data = val_gen.__next__()
     Xtest = val_data[0]
     Ytest = val_data[1]
     test_noise = val_data[2]
@@ -118,10 +104,9 @@ def train(model, gen_class, val_data, epochs, steps_per_epoch = 100):
     # Save final weight
     model.save_weights('model_weight.hdf5')
     fcsv.close()
-    opt_sens = model.get_weights()[1][0][0]
-    plot_sensitivity(opt_sens, [400, 700], 'optimal_sensitivity.png')
     np.save('sens_log.npy', weight_array)
     print('Finish')
+    return model
 
 
 def main(args):
@@ -131,17 +116,15 @@ def main(args):
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
         print('Using gpu')
 
-    # initial camera sensitivity
+    # Initial camera sensitivity
     camera_name = args.camera
 
     print('Load dataset : ' + args.dataset)
     if args.dataset == 'cave':
         from lib.load_dataset.load_cave_data import get_hsi, get_srgb, get_srgb_gain, get_val_srgb
-        # wavelengt range
         wavelength_range = [400, 700]
     elif args.dataset == 'tokyotech':
         from lib.load_dataset.load_tokyotech_data import get_hsi, get_srgb, get_srgb_gain, get_val_srgb
-        # wavelengt range
         wavelength_range = [420, 720]
     else:
         print('dataset error')
@@ -162,22 +145,22 @@ def main(args):
     sensitivity[0][0] = sens
 
     # Load illuminants
-    iiluminant_name = 'D65'
+    illuminant_name = 'D65'
     Ls = np.zeros((1, 1, hsi_bandwidth, hsi_bandwidth))
-    Ls[0][0] = get_illuminant(iiluminant_name=iiluminant_name, wavelength_range=wavelength_range)
+    Ls[0][0] = get_illuminant(illuminant_name=illuminant_name, wavelength_range=wavelength_range)
 
     # Normalize each image
     g_ts = get_srgb_gain()
     for i in range(data_num):
         hsi[i, :, :, :] *= g_ts[i]
 
-    # set ground truth
+    # Set ground truth
     print('Ground Truth is ' + args.gt)
     if (args.gt == 'srgb'):
         ground_truth = srgb
         if not args.validation:
             with open(args.valfile, mode='rb') as fi:
-                val_data = pickle.load(fi)
+                val_gen_class = pickle.load(fi)
 
     # Data details
     YBorder = 1
@@ -187,13 +170,13 @@ def main(args):
     ps = 128
     patch_size = [ps + 2 * YBorder, ps + 2 * YBorder]
     nl_range = [0, nl_max]
-    wide_color = 'g'
+    wide_color = 'g' #bayer wide color
     
     # Train parameters
     test_data_num = 8
-    traindata_num = data_num - test_data_num
+    train_data_num = data_num - test_data_num
     smoothness = 1E-7
-    # smoothness = 0
+    clipvalue = 0.5
     skip_mixed = True
     Mcc = None
     epochs = args.epochs
@@ -202,12 +185,10 @@ def main(args):
         # Make validation data
         print('make validation data')
         gen_class = Gen(hsi[-test_data_num:, :, :, :], ground_truth[-test_data_num:, :, :, :], batch_size, patch_size, Ls[0][0], sens, nl_range = nl_range, YBorder = YBorder)   
-        gen_class.seeds(2, 2)
-        gen = gen_class.generator()
-        val_data = gen.__next__()
+        gen_class.seeds(0, 1)
 
         with open(args.valfile, mode='wb') as fo:
-            pickle.dump(val_data, fo) 
+            pickle.dump(gen_class, fo) 
     else:
         # Train data
         gen_class = Gen(hsi[:-test_data_num, :, :, :], ground_truth[:-test_data_num, :, :, :],
@@ -228,30 +209,37 @@ def main(args):
         model_outputs = gain_multi_model([decoder(encoder.outputs[0]), gain_model.outputs[0]])
         model = Model(inputs = model_inputs, outputs = model_outputs)
 
-        opt = Adam(clipvalue=0.5)
+        opt = Adam(clipvalue=clipvalue)
         model.compile(loss='mean_squared_error', optimizer=opt, metrics=[mean_rmse255, mean_cpsnr])
+
+        # Output model structure
+        model.summary()
 
         # Load model weight (if exists)
         if (args.weight != None):
             print('Load' + args.weight)
             model.load_weights(args.weight)
 
-        # Output model structure
-        model.summary()
-        # plot_model(model, to_file = args.output + 'model.png')
-        
         # Define output folder
         if not os.path.isdir(args.output):
             os.mkdir(args.output)
         os.chdir(args.output)
 
-        # plot initial sensitivity
+        # Output configure
+        output_config('config.txt', train_data_num, smoothness, nl_max255, batch_size, patch_size, skip_mixed, Mcc, wide_color)
+        
+        # Plot initial sensitivity
         plot_sensitivity(sens, wavelength_range, 'initial_sensitivity.png')
 
         # Train
-        train(model, gen_class, val_data, epochs)
+        opt_model = train(model, gen_class, val_gen_class, epochs)
 
-        plot_all_log(args.output + 'data.csv', args.output)
+        # Plot optimal sensitivity
+        opt_sens = opt_model.get_weights()[1][0][0]
+        plot_sensitivity(opt_sens, wavelength_range, 'optimal_sensitivity.png')
+
+        # Plot training log
+        plot_all_log('data.csv')
 
 
 if __name__ == "__main__":
@@ -264,7 +252,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=100,
                         help='number of training epochs. (default: 100)')
     parser.add_argument('--noise', type=int, default=0,
-                        help='define test noise level (8bit). (default: 0)')
+                        help='training noise level (8bit). (default: 0)')
     parser.add_argument('--output', dest='output',
                         default='results/', help='output directory (default: results/)')
     parser.add_argument('--weight', dest='weight',
@@ -274,11 +262,11 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', dest='dataset', default='cave',
                         help='set dataset cave or tokyotech (default: cave)')
     parser.add_argument('--camera', dest = 'camera',  default='Canon20D',
-                        help = 'if you use other cameras, set camera name (default: Canon20D)')
+                        help = 'set camera name (default: Canon20D)')
     parser.add_argument('--validation', dest = 'validation', action = 'store_true', 
                         help = 'if you make validation data, set True (default: False)')
     parser.add_argument('--valfile', dest='valfile', default='val_data.pickle',
-                        help='set validation file name(default: val/)')
+                        help='set validation file name(default: val_data.pickle)')
     parser.set_defaults(gpu = True)
     parser.set_defaults(weight = None)
     parser.set_defaults(trainable = False)

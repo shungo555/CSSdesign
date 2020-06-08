@@ -6,7 +6,7 @@ import csv
 import argparse
 
 
-DATA_ROOT = '../../'
+# DATA_ROOT = '../../'
 
 
 def smoothness(weight):
@@ -72,7 +72,7 @@ def plot_rmse_log(rmse_log, val_rmse_log, title):
 
 
 def plot_sensitivity(sensitivity, wavelength_range, title):
-    """[summary]
+    """plot Camera spectral sensitivity
     
     Parameters
     ----------
@@ -96,6 +96,19 @@ def plot_sensitivity(sensitivity, wavelength_range, title):
 
 
 def load_csv_data(file_name, column):
+    """load csv data
+
+    Parameters
+    ----------
+    file_name : string
+        csv file name
+    column : int
+
+    Returns
+    -------
+    numpy.array()
+        log data (column)
+    """
     csv_file = open(file_name,'r')
     a_list = [] 
     for row in csv.reader(csv_file):
@@ -107,17 +120,26 @@ def load_csv_data(file_name, column):
     return data
 
 
-def plot_all_log(file_name, out_dir):
-    rmse_log = load_csv_data(DATA_ROOT + file_name, 3)
-    cpsnr_log = load_csv_data(DATA_ROOT + file_name, 4)  
-    val_rmse_log = load_csv_data(DATA_ROOT + file_name, 5)  
-    val_cpsnr_log = load_csv_data(DATA_ROOT + file_name, 6)
+def plot_all_log(file_name):
+    """plot rmse and cpsnr (log data)
 
-    plot_rmse_log(rmse_log, val_rmse_log, DATA_ROOT + out_dir + 'rmse.png')
-    plot_cpsnr_log(cpsnr_log, val_cpsnr_log, DATA_ROOT + out_dir + 'cpsnr.png')
+    Parameters
+    ----------
+    file_name : string
+        csv file name
+    """
+    rmse_log = load_csv_data(file_name, 3)
+    cpsnr_log = load_csv_data(file_name, 4)  
+    val_rmse_log = load_csv_data(file_name, 5)  
+    val_cpsnr_log = load_csv_data(file_name, 6)
+
+    plot_rmse_log(rmse_log, val_rmse_log, 'rmse.png')
+    plot_cpsnr_log(cpsnr_log, val_cpsnr_log, 'cpsnr.png')
+
 
 def main(args):
     plot_all_log(args.input, args.output)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=True)
