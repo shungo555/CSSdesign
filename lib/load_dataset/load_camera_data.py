@@ -5,11 +5,11 @@ import csv
 
 DATA_ROOT = ''
 
-with open('../../path.txt') as f:
+with open('../path.txt') as f:
     l = f.readlines()
     DATA_ROOT = l[1]
 
-CAMERA_DATA_ROOT = DATA_ROOT + '/camera_data/response/'
+CAMERA_DATA_ROOT = DATA_ROOT + 'camera_data/response/'
 
 def get_camera_sensitivity(camera_name="Canon20D", wavelength_range=[400, 700]):
     """Load canon20D sensitivity

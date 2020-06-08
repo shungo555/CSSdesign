@@ -5,7 +5,7 @@ import pickle
 
 DATA_ROOT = ''
 
-with open('../../path.txt') as f:
+with open('../path.txt') as f:
     l = f.readlines()
     DATA_ROOT = l[1]
 

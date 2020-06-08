@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 
 DATA_ROOT = ''
 
-with open('../../path.txt') as f:
+with open('../path.txt') as f:
     l = f.readlines()
     DATA_ROOT = l[1]
     
-ILLUMINANT_DATA_ROOT = DATA_ROOT + '/illuminant_data/'
+ILLUMINANT_DATA_ROOT = DATA_ROOT + 'illuminant_data/'
 
 
 def get_illuminant(illuminant_name="D65", wavelength_range=[400, 700]):
