@@ -1,0 +1,7 @@
+Using TensorFlow backend.
+Traceback (most recent call last):
+  File "../src/mytrain.py", line 32, in <module>
+    from lib.load_dataset.load_illuminant_data import get_illuminant
+  File "D:\workspace\titech\okutomi\program\CSSdesign\src\..\lib\load_dataset\load_illuminant_data.py", line 8, in <module>
+    with open('../../path.txt') as f:
+FileNotFoundError: [Errno 2] No such file or directory: '../../path.txt'
