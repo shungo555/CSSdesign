@@ -28,7 +28,10 @@ def get_camera_sensitivity(camera_name="Canon20D", wavelength_range=[400, 700]):
     """
     print('Load Camera sensitivity(' + camera_name + ')')  
     data_range = [int((wavelength_range[0] - 400) / 10), 1 + int((wavelength_range[1] - 400) / 10)] 
-    sens = np.load(CAMERA_DATA_ROOT + camera_name + '.npy')[:, data_range[0]:data_range[1]]
+    if not camera_name=='random':
+        sens = np.load(CAMERA_DATA_ROOT + camera_name + '.npy')[:, data_range[0]:data_range[1]]
+    else:
+        sens = np.random.rand(3, 31)
     return sens.T
 
 if __name__ == "__main__":
