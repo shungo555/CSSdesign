@@ -3,8 +3,13 @@ import scipy.io
 import csv
 import pickle
 
+DATA_ROOT = ''
 
-TOKYOTECH_DATA_ROOT = 'D:/workspace/大学/奥富田中研究室/program/dataset/tokyotech_hsi/'
+with open('../../path.txt') as f:
+    l = f.readlines()
+    DATA_ROOT = l[1]
+
+TOKYOTECH_DATA_ROOT = DATA_ROOT + 'tokyotech_hsi/'
 
 
 def get_hsi():

@@ -3,7 +3,12 @@ import scipy.io
 import csv
 import matplotlib.pyplot as plt
 
-DATA_ROOT = 'D:/workspace/大学/奥富田中研究室/program/dataset/'
+DATA_ROOT = ''
+
+with open('../../path.txt') as f:
+    l = f.readlines()
+    DATA_ROOT = l[1]
+    
 ILLUMINANT_DATA_ROOT = DATA_ROOT + '/illuminant_data/'
 
 

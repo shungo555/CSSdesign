@@ -14,15 +14,12 @@ mpl.use('Agg')
 
 sys.path.append('../')
 sys.path.append('../../')
-from lib.load_dataset.load_canon20D_data import get_canon20D_sensitivity, get_illuminant, get_H
+from lib.load_dataset.load_illuminant_data import get_illuminant
+from lib.load_dataset.load_camera_data import get_camera_sensitivity
+from lib.load_dataset.load_environment_data import get_H
 from lib.image_tools.draw_image import imwrite
 from lib.image_tools.image_process import gamma_correction
 
-def normalize_rgb(sens, Ls, alpha=0.95):
-    white_data = np.ones((Ls.shape[0], 1))
-    white_rgb = np.dot(sens, np.dot(Ls, white_data)).T
-    g_s = alpha / np.amax(white_rgb)
-    return g_s
 
 def main(args):
     print('Load dataset : ' + args.dataset)
@@ -38,8 +35,9 @@ def main(args):
         print('dataset error')
         sys.exit(1)
 
-    Ls = get_illuminant(wavelength_range=wavelength_range)
+    Ls = get_illuminant(illuminant_name="D65", wavelength_range=wavelength_range)
     print(Ls)
+
     # load HSI data
     hsi = get_hsi()
     data_num = hsi.shape[0]
@@ -51,11 +49,10 @@ def main(args):
     if (args.gt == 'srgb'):
         sens = get_H(wavelength_range=wavelength_range)
     elif (args.gt == 'crgb'):
-        sens = get_canon20D_sensitivity(wavelength_range=wavelength_range)
+        sens = get_camera_sensitivity(camera_name="Canon20D", wavelength_range=wavelength_range)
 
     # get RGB gain(for normalize)
     alpha = 0.95
-    g_s = normalize_rgb(sens, Ls, alpha=alpha)
     g_t = np.ones((hsi.shape[0], 1))
 
     # make srgb data
@@ -64,7 +61,6 @@ def main(args):
 
     for i in range(data_num):
         rgb_data[i, :, :] = np.dot(sens, np.dot(Ls, data[i, :, :].T)).T
-        rgb_data[i, :, :] *= g_s
         g_t[i, 0] = alpha / np.amax(rgb_data[i, :, :])
         rgb_data[i, :, :] *= g_t[i, 0]
         gamma_rgb_data[i, :, :] = gamma_correction(rgb_data[i, :, :])
@@ -73,7 +69,6 @@ def main(args):
     gamma_rgb = np.reshape(
         gamma_rgb_data, (hsi.shape[0], hsi.shape[1], hsi.shape[2], 3))
 
-    np.save(args.output + 'gs_' + args.gt + '.npy', g_s)
     np.save(args.output + 'gt_' + args.gt + '.npy', g_t)
     np.save(args.output + args.dataset + '_' + args.gt + '.npy', rgb)
 
